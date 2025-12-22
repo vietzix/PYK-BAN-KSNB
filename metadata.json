@@ -1,0 +1,8 @@
+{
+  "name": "Audit & Governance Portal",
+  "description": "A comprehensive internal control management system for tracking tickets, reviews, and compliance checklists with advanced configuration capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
