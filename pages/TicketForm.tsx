@@ -1,4 +1,4 @@
-
+import { saveTicketToFirebase } from "../saveTicketToFirebase";
 import React, { useState } from 'react';
 import { 
   Info, 
@@ -272,3 +272,24 @@ const TicketForm: React.FC = () => {
 };
 
 export default TicketForm;
+import { saveTicketToFirebase } from "../saveTicketToFirebase";
+
+const handleCreateTicket = async () => {
+  try {
+    const newId = await saveTicketToFirebase({
+      title,
+      field,
+      unit,
+      assignee,
+      status,
+      dueDate,
+      reviewProgress,
+    });
+
+    alert("✅ Đã lưu Firebase. ID = " + newId);
+  } catch (e) {
+    console.error(e);
+    alert("❌ Lỗi lưu Firebase – mở Console (F12) để xem");
+  }
+};
+
