@@ -10,3 +10,6 @@ export async function saveToFirebase(prompt: string, result: string) {
   });
   return ref.id;
 }
+
+export default saveToFirebase;
+
