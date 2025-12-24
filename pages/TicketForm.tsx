@@ -62,10 +62,16 @@ const TicketForm: React.FC = () => {
     if (!validate()) return;
 
     setIsSubmitting(true);
-    
-    // Giả lập lưu dữ liệu vào localStorage
+
+    // 1) Tạo mã phiếu (hiển thị) + dữ liệu chuẩn
+    const ticketCode = `TKT-2025-${Math.floor(Math.random() * 900) + 100}`;
+    const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+
     const newTicket: Ticket = {
-      id: `TKT-2025-${Math.floor(Math.random() * 900) + 100}`, // Tạo mã ngẫu nhiên
+      id: ticketCode,
       title: formData.title,
       field: formData.field,
       project: formData.project || 'Không xác định',
@@ -73,19 +79,42 @@ const TicketForm: React.FC = () => {
       status: TicketStatus.NEW,
       priority: formData.priority,
       assignee: 'Đoàn Thái Việt', // Mặc định người tạo
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Mặc định 14 ngày sau
-      lastUpdated: new Date().toISOString().split('T')[0],
-      createdAt: new Date().toISOString().split('T')[0],
+      dueDate, // Mặc định 14 ngày sau
+      lastUpdated: today,
+      createdAt: today,
       reviewProgress: 0,
       description: formData.description
     };
 
-    setTimeout(() => {
-      addTicketToStore(newTicket); // Lưu vào store
-      setIsSubmitting(false);
-      alert('Tạo phiếu thành công! Phiếu đã được đưa vào danh sách theo dõi.');
+    // 2) Lưu ONLINE lên Firestore
+    try {
+      await saveTicketToFirebase({
+        code: ticketCode,
+        title: newTicket.title,
+        field: newTicket.field,
+        unit: newTicket.unit,
+        project: newTicket.project,
+        priority: newTicket.priority,
+        status: newTicket.status,
+        assignee: newTicket.assignee,
+        dueDate: newTicket.dueDate,
+        detectDate: formData.detectDate || undefined,
+        description: newTicket.description,
+        reviewProgress: newTicket.reviewProgress,
+        lastUpdated: newTicket.lastUpdated,
+      });
+
+      // 3) Lưu local (để UI cập nhật ngay)
+      addTicketToStore(newTicket);
+
+      alert('Đã lưu phiếu lên Firebase thành công.');
       navigate('/tickets');
-    }, 800);
+    } catch (err) {
+      console.error('saveTicketToFirebase failed:', err);
+      alert('Lưu Firebase thất bại. Bạn mở Console (F12) để xem lỗi chi tiết.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -272,27 +301,3 @@ const TicketForm: React.FC = () => {
 };
 
 export default TicketForm;
-import { saveTicketToFirebase } from "../saveTicketToFirebase";
-
-const handleCreateTicket = async () => {
-  try {
-    const id = await saveTicketToFirebase({
-      title,
-      field,
-      unit,
-      assignee,
-      status,
-      dueDate,
-      reviewProgress,
-    });
-
-    alert("✅ Phiếu đã lưu online! ID: " + id);
-  } catch (err) {
-    console.error(err);
-    alert("❌ Lưu phiếu thất bại");
-  }
-};
-<button onClick={handleCreateTicket}>
-  Tạo phiếu
-</button>
-
