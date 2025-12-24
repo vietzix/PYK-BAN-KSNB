@@ -1,4 +1,4 @@
-
+import { saveToFirebase } from "../saveToFirebase";
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
@@ -114,6 +114,7 @@ const ChatbotPage: React.FC = () => {
           ));
         }
       }
+await saveToFirebase(prompt, assistantContent);
 
     } catch (error) {
       console.error('Lỗi Chatbot:', error);
