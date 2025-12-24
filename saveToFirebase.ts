@@ -8,5 +8,6 @@ export async function saveToFirebase(prompt: string, result: string) {
     result,
     createdAt: serverTimestamp(),
   });
+
   return ref.id;
 }
