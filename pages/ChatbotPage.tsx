@@ -1,4 +1,4 @@
-import saveToFirebase from "../saveToFirebase";
+import { saveToFirebase } from "../saveToFirebase";
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
@@ -140,7 +140,7 @@ QUY TẮC TRÌNH BÀY (BẮT BUỘC):
         }
       }
 
-      await saveTicketToFirebase(prompt, assistantContent);
+      await saveToFirebase(prompt, assistantContent);
     } catch} catch (error) {
       console.error('Lỗi Chatbot:', error);
       setMessages(prev => [...prev, {
