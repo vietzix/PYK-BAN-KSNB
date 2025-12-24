@@ -1,8 +1,7 @@
-// saveToFirebase.ts
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase"; // firebase.ts phải export db
+import { db } from "./firebase";
 
-export async function saveToFirebase(prompt: string, result: string) {
+export default async function saveToFirebase(prompt: string, result: string) {
   const ref = await addDoc(collection(db, "requests"), {
     prompt,
     result,
@@ -10,6 +9,4 @@ export async function saveToFirebase(prompt: string, result: string) {
   });
   return ref.id;
 }
-
-export default saveToFirebase;
 
