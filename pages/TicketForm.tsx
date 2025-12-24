@@ -276,7 +276,7 @@ import { saveTicketToFirebase } from "../saveTicketToFirebase";
 
 const handleCreateTicket = async () => {
   try {
-    const newId = await saveTicketToFirebase({
+    const id = await saveTicketToFirebase({
       title,
       field,
       unit,
@@ -286,10 +286,13 @@ const handleCreateTicket = async () => {
       reviewProgress,
     });
 
-    alert("✅ Đã lưu Firebase. ID = " + newId);
-  } catch (e) {
-    console.error(e);
-    alert("❌ Lỗi lưu Firebase – mở Console (F12) để xem");
+    alert("✅ Phiếu đã lưu online! ID: " + id);
+  } catch (err) {
+    console.error(err);
+    alert("❌ Lưu phiếu thất bại");
   }
 };
+<button onClick={handleCreateTicket}>
+  Tạo phiếu
+</button>
 
