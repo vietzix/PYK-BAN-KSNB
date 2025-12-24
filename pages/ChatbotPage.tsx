@@ -14,7 +14,6 @@ import {
   ChevronRight,
   ShieldCheck
 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import { getTickets } from '../constants';
 
 interface Message {
@@ -61,62 +60,88 @@ const ChatbotPage: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
+    
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const ticketsContext = JSON.stringify(tickets.map(t => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        field: t.field,
-        unit: t.unit,
-        assignee: t.assignee,
-        dueDate: t.dueDate,
-        reviewProgress: t.reviewProgress
-      })));
+      const ticketsContext = JSON.stringify(
+        tickets.map(t => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          field: t.field,
+          unit: t.unit,
+          assignee: t.assignee,
+          dueDate: t.dueDate,
+          reviewProgress: t.reviewProgress
+        }))
+      );
 
       const prompt = `
-        Bạn là Trợ lý AI chuyên sâu về Kiểm soát Nội bộ (KSNB) tại PVEP.
-        Dữ liệu hệ thống hiện tại: ${ticketsContext}
+Bạn là Trợ lý AI chuyên sâu về Kiểm soát Nội bộ (KSNB) tại PVEP.
+Dữ liệu hệ thống hiện tại: ${ticketsContext}
 
-        Yêu cầu người dùng: "${text}"
+Yêu cầu người dùng: "${text}"
 
-        QUY TẮC TRÌNH BÀY (BẮT BUỘC):
-        1. Sử dụng BẢNG (Markdown table) khi liệt kê từ 2 phiếu trở lên, khi so sánh, hoặc khi trình bày các thông số kỹ thuật. 
-           Cột bảng nên bao gồm: Mã phiếu, Tiêu đề, Lĩnh vực, Trạng thái, Hạn xử lý.
-        2. Sử dụng GẠCH ĐẦU DÒNG cho các danh sách nhận xét, phân tích rủi ro hoặc kiến nghị xử lý.
-        3. Định dạng văn bản: **In đậm** các mã phiếu (VD: **TKT-2025-001**), các trạng thái (VD: **Quá hạn**) và các mốc thời gian.
-        4. Trả lời trực diện vào vấn đề, không lặp lại lời chào dài dòng nếu đã chào trước đó.
-        5. Nếu thông tin không có trong dữ liệu cung cấp, hãy nêu rõ "Dữ liệu hiện tại không ghi nhận..." và gợi ý người dùng kiểm tra lại mã phiếu.
-        6. Trình bày chuyên nghiệp, súc tích, chuẩn văn phong kiểm soát nội bộ.
+QUY TẮC TRÌNH BÀY (BẮT BUỘC):
+1. Sử dụng BẢNG (Markdown table) khi liệt kê từ 2 phiếu trở lên, khi so sánh, hoặc khi trình bày các thông số kỹ thuật.
+   Cột bảng nên bao gồm: Mã phiếu, Tiêu đề, Lĩnh vực, Trạng thái, Hạn xử lý.
+2. Sử dụng GẠCH ĐẦU DÒNG cho các danh sách nhận xét, phân tích rủi ro hoặc kiến nghị xử lý.
+3. Định dạng văn bản: **In đậm** các mã phiếu (VD: **TKT-2025-001**), các trạng thái (VD: **Quá hạn**) và các mốc thời gian.
+4. Trả lời trực diện vào vấn đề, không lặp lại lời chào dài dòng nếu đã chào trước đó.
+5. Nếu thông tin không có trong dữ liệu cung cấp, hãy nêu rõ "Dữ liệu hiện tại không ghi nhận..." và gợi ý người dùng kiểm tra lại mã phiếu.
+6. Trình bày chuyên nghiệp, súc tích, chuẩn văn phong kiểm soát nội bộ.
       `;
 
-      const responseStream = await ai.models.generateContentStream({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
+      // Hướng 2: gọi API server-side (Vercel/Node) để tránh lộ API key trên trình duyệt
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
       });
+
+      if (!res.ok) {
+        throw new Error(`Chat API failed: ${res.status} ${res.statusText}`);
+      }
 
       let assistantContent = '';
       const assistantMessageId = (Date.now() + 1).toString();
-      
-      setMessages(prev => [...prev, {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date()
-      }]);
 
-      for await (const chunk of responseStream) {
-        const textChunk = chunk.text;
-        if (textChunk) {
-          assistantContent += textChunk;
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId ? { ...msg, content: assistantContent } : msg
-          ));
+      setMessages(prev => [
+        ...prev,
+        {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date()
+        }
+      ]);
+
+      // Ưu tiên stream để UI hiển thị dần; nếu server trả JSON text thường thì vẫn đọc được.
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        const data = await res.json();
+        assistantContent = data?.text ?? '';
+        setMessages(prev =>
+          prev.map(msg => (msg.id === assistantMessageId ? { ...msg, content: assistantContent } : msg))
+        );
+      } else {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          if (!chunk) continue;
+
+          assistantContent += chunk;
+          setMessages(prev =>
+            prev.map(msg => (msg.id === assistantMessageId ? { ...msg, content: assistantContent } : msg))
+          );
         }
       }
-await saveToFirebase(prompt, assistantContent);
 
-    } catch (error) {
+      await saveToFirebase(prompt, assistantContent);
+    } catch} catch (error) {
       console.error('Lỗi Chatbot:', error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
