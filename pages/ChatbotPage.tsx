@@ -1,4 +1,4 @@
-import { saveTicketToFirebase } from "../saveTicketToFirebase";
+import { saveToFirebase } from "../saveToFirebase";
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
