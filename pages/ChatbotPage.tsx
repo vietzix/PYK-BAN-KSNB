@@ -141,7 +141,7 @@ QUY TẮC TRÌNH BÀY (BẮT BUỘC):
       }
 
       await saveToFirebase(prompt, assistantContent);
-    } catch} catch (error) {
+    } catch (error) {
       console.error('Lỗi Chatbot:', error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
